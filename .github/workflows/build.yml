@@ -33,3 +33,9 @@ jobs:
           ln -s / void-packages/masterdir
           ./make bootstrap
           ./make build bibata-modern-ice
+      - name: publish ${{ matrix.arch }}
+        run: |
+          pwd
+          ls -lha
+          git status
+          ls -lha hostdir/**/*
