@@ -31,10 +31,6 @@ jobs:
       - name: git clone
         run: |
           git clone --recurse-submodules --shallow-submodules https://github.com/${{github.repository}} /tmp/repo
-      - name: checkout voiders-community/packages
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
       - name: build ${{ matrix.arch }}
         run: |
           cd /tmp/repo
