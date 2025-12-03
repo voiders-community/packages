@@ -30,4 +30,6 @@ jobs:
     steps:
       - name: build ${{ matrix.arch }}
         run: |
+          ls -lha
+          pwd
           yes | ./make build bibata-modern-ice
