@@ -18,8 +18,9 @@ jobs:
       - name: checkout voiders-community/packages
         uses: actions/checkout@v6
         with:
-          path: /repo
+          submodules: recursive
       - name: foo
         run: |
-          ls -lha /repo
+          ls -lha /
+          ls -lha .
         
