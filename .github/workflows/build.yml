@@ -33,8 +33,9 @@ jobs:
       - name: git clone
         run: |
           git clone --recurse-submodules --shallow-submodules https://github.com/${{github.repository}} /tmp/repo
+          chown -R builder:builder /tmp/repo
       - name: build ${{ matrix.arch }}
         run: |
           cd /tmp/repo
-          ./make bootstrap
-          ./make build bibata-modern-ice
+          sudo -Eu ./make bootstrap
+          sudo -Eu ./make build bibata-modern-ice
