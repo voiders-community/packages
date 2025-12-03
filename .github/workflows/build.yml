@@ -28,5 +28,8 @@ jobs:
           submodules: recursive
       - name: build ${{ matrix.arch }}
         run: |
+          echo XBPS_CHROOT_CMD=ethereal >> ./void-packages/etc/conf
+          echo XBPS_ALLOW_CHROOT_BREAKOUT=yes >> ./void-packages/etc/conf
+          ln -s / void-packages/masterdir
           ./make bootstrap
           ./make build bibata-modern-ice
