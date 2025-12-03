@@ -37,5 +37,5 @@ jobs:
       - name: build ${{ matrix.arch }}
         run: |
           cd /tmp/repo
-          sudo -Eu ./make bootstrap
-          sudo -Eu ./make build bibata-modern-ice
+          sudo -Eu builder ./make bootstrap
+          sudo -Eu builder ./make build bibata-modern-ice
