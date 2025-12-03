@@ -8,7 +8,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build-musl:
+  prepare:
     runs-on: ubuntu-latest
     steps:
       - name: get xbps static
@@ -19,8 +19,15 @@ jobs:
         uses: actions/checkout@v6
         with:
           submodules: recursive
-      - name: foo
+  build:
+    needs: [prepare]
+    strategy:
+      matrix:
+        arch: [x86_64, x86_64-musl]
+    runs-on: ubuntu-latest
+    env:
+      XBPS_TARGET_ARCH: ${{ matrix.arch }}
+    steps:
+      - name: build ${{ matrix.arch }}
         run: |
-          ls -lha /
-          ls -lha .
-        
+          yes | make build bibata-modern-ice
