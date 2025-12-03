@@ -15,7 +15,8 @@ jobs:
         arch: [x86_64, x86_64-musl]
     env:
       XBPS_TARGET_ARCH: ${{ matrix.arch }}
-      XBPS_CHROOT_CMD: uchroot
+      XBPS_CHROOT_CMD: ethereal
+      XBPS_ALLOW_CHROOT_BREAKOUT: yes
     steps:
       - name: get xbps static
         run: |
