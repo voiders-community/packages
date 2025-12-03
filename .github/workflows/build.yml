@@ -28,6 +28,8 @@ jobs:
         run: |
           mkdir -p /etc/xbps.d && cp /usr/share/xbps.d/*-repository-*.conf /etc/xbps.d/
           xbps-install -Syu xbps && xbps-install -yu && xbps-install -y sudo bash curl git
+          useradd -G xbuilder -M builder
+          su builder
       - name: git clone
         run: |
           git clone --recurse-submodules --shallow-submodules https://github.com/${{github.repository}} /tmp/repo
