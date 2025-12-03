@@ -1,6 +1,11 @@
 name: Build
 on:
   workflow_dispatch:
+    inputs:
+      template:
+        description: "The template name to build"
+        required: true
+        type: string
   push:
     branches: [master]
     paths: [srcpkgs/**]
@@ -15,8 +20,6 @@ jobs:
         arch: [x86_64, x86_64-musl]
     env:
       XBPS_TARGET_ARCH: ${{ matrix.arch }}
-      XBPS_CHROOT_CMD: ethereal
-      XBPS_ALLOW_CHROOT_BREAKOUT: yes
     steps:
       - name: get xbps static
         run: |
@@ -32,10 +35,12 @@ jobs:
           echo XBPS_ALLOW_CHROOT_BREAKOUT=yes >> ./void-packages/etc/conf
           ln -s / void-packages/masterdir
           ./make bootstrap
-          ./make build bibata-modern-ice
-      - name: publish ${{ matrix.arch }}
+          ./make build ${{ inputs.template }}
+      - name: extract template version/revision
         run: |
-          pwd
-          ls -lha
-          git status
-          ls -lha hostdir/**/*
+          eval $(printf "templ_%s\n" $(grep -e "revision=" -e "version=" ./srcpkgs/${{ inputs.template }}/template))
+      - name: publish ${{ matrix.arch }}
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: "hostdir/binpkgs"
+          push: true
