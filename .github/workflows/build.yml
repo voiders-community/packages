@@ -1,0 +1,14 @@
+name: Build
+on: push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-musl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: get xbps static
+        run: |
+          curl -fLO https://repo-default.voidlinux.org/static/xbps-static-static-0.60.4_1.x86_64-musl.tar.xz /tmp/xbps.tar.xz
+          tar xvf /tmp/xbps.tar.xz
+          ls -lha /tmp/xbps.tar.xz
