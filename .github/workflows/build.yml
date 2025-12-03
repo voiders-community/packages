@@ -30,4 +30,4 @@ jobs:
     steps:
       - name: build ${{ matrix.arch }}
         run: |
-          yes | make build bibata-modern-ice
+          yes | ./make build bibata-modern-ice
