@@ -1,0 +1,47 @@
+# Template file for 'neovimmm'
+pkgname=neovimmm
+version=0.11.9
+revision=1
+# build_style=cmake
+configure_args="-DCOMPILE_LUA=OFF -DENABLE_TRANSLATIONS=ON -DPREFER_LUA=$(vopt_if luajit OFF ON)"
+hostmakedepends="gettext patchelf"
+makedepends="cmake ninja libuv-devel libluv-devel libutf8proc-devel tree-sitter-devel unibilium-devel
+ lua51-lpeg $(vopt_if luajit LuaJIT-devel lua51-devel)"
+short_desc="Fork of Vim aiming to improve user experience, plugins and GUIs"
+maintainer="tranzystorekk <tranzystorek.io@protonmail.com>"
+license="Apache-2.0 AND Vim"
+homepage="https://neovim.io"
+distfiles="https://github.com/neovim/neovim/archive/23d0d4c92a5758731a84977c08ce16fc8477f4d0.zip"
+checksum="a49f09c91e27c7ca69626f1139703fce0d19a5b0995c26b7f1c3a0c61f677190"
+
+build_options=luajit
+
+case "$XBPS_TARGET_MACHINE" in
+	armv6l|armv7l|riscv64*) build_options_default="" ;;
+	*) build_options_default="luajit" ;;
+esac
+
+alternatives="
+ vi:vi:/usr/bin/nvim
+ vi:vi.1:/usr/share/man/man1/nvim.1
+ vi:view:/usr/bin/nvim
+ vi:view.1:/usr/share/man/man1/nvim.1
+ vim:vim:/usr/bin/nvim
+ vim:vim.1:/usr/share/man/man1/nvim.1"
+
+# They want assertion
+CFLAGS=-UNDEBUG
+
+do_install() {
+    make \
+        CMAKE_BUILD_TYPE=Release \
+        CMAKE_INSTALL_PREFIX=/usr
+
+    make DESTDIR="$DESTDIR" install
+}
+
+pre_configure() {
+	# build bundled treesitter parsers
+	cmake -S cmake.deps -B .deps -G Ninja 
+	cmake --build .deps
+}
