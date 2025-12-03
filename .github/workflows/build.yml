@@ -1,5 +1,9 @@
 name: Build
-on: [push, workflow_dispatch]
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: [srcpkgs/**]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -11,4 +15,11 @@ jobs:
         run: |
           curl -o /tmp/xbps.tar.xz -fLO https://repo-default.voidlinux.org/static/xbps-static-static-0.60.4_1.x86_64-musl.tar.xz
           sudo tar xvf /tmp/xbps.tar.xz -C / 
-          xbps-install --help
+      - name: checkout voiders-community/packages
+        uses: actions/checkout@v6
+        with:
+          path: /repo
+      - name: foo
+        run: |
+          ls -lha /repo
+        
