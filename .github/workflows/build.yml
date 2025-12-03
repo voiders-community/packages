@@ -30,7 +30,7 @@ jobs:
           xbps-install -Syu xbps && xbps-install -yu && xbps-install -y sudo bash curl git
       - name: git clone
         run: |
-          git clone --recurse-submodules --depth 1 https://github.com/${{github.repository}} /tmp/repo
+          git clone --recurse-submodules --shallow-submodules https://github.com/${{github.repository}} /tmp/repo
       - name: checkout voiders-community/packages
         uses: actions/checkout@v6
         with:
