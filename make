@@ -1,10 +1,12 @@
 #!/bin/sh -e
 
-usage() {
-    echo "$0 [command] [args]\n"
-    echo "    A simple script to manage a custom xbps repo\n"
-    echo "Commands:\n"
-    echo "    build [template]\n"
+_xbps_src() {
+    set +e
+    (
+        set -e
+        cd ./void-packages
+        ./xbps-src -H "../hostdir" "$@"
+    )
 }
 
 build() {
@@ -24,18 +26,16 @@ build() {
     fi
 
     cp -r "./srcpkgs/$1" "./void-packages/srcpkgs/$1"
-
-    set +e
-    (
-        set -e
-        cd ./void-packages
-        ./xbps-src -H "../hostdir" pkg "$1"
-    )
-
+    _xbps_src pkg "$1"
     rm -rf "./void-packages/srcpkgs/$1"
 }
 
+bootstrap() {
+    _xbps_src binary-bootstrap
+}
+
 case "$1" in
-    build) build "$2" ;;
-    *)     usage "$0" ;;
+    build)     build "$2" ;;
+    bootstrap) bootstrap ;;
+    *)         echo "unknown command $1" && exit 1 ;;
 esac
