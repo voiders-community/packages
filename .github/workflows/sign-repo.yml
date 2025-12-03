@@ -1,0 +1,51 @@
+name: Build
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: [hostdir/binpkgs/*.xbps]
+permissions:
+  contents: write
+  packages: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/voiders-community/builder:master
+      options: --privileged
+      env:
+        XBPS_TARGET_ARCH: ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ x86_64, x86_64-musl ]
+    steps:
+      - name: clone ${{ github.repository }}
+        run: |
+          git clone https://github.com/${{ github.repository }}.git --shallow-submodules --recursive --depth=2
+      - name: decrypting private key
+        run: |
+          cd packages
+          gpg --quiet --batch --yes --decrypt --passphrase="${{ secrets.PRIVATE_PEM_GPG_PASS }}" --output ./private.pem ./private.pem.gpg
+      - name: adding packages
+        run: |
+          cd packages
+          xbps-rindex -a ./hostdir/binpkgs/*.xbps
+      - name: signing repo
+        run: |
+          cd packages
+          xbps-rindex --privkey private.pem --sign --signedby "Voiders community" hostdir/binpkgs
+      - name: pushing repo
+        run: |
+          cd packages
+          git config user.email "community@voiders.fake.url"
+          git config user.name "Voiders Community"
+          git pull --autostash --rebase
+          git add ./hostdir/binpkgs/${{ matrix.arch }}-repodata*
+          git commit -m "[ci] sign repo ${{ matrix.arch }}"
+          git remote remove origin
+          git remote add origin https://builder:${{ secrets.PAT }}@github.com/${{ github.repository }}
+          git push --set-upstream origin master
