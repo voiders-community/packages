@@ -54,6 +54,7 @@ jobs:
         with:
           add: ./hostdir/binpkgs/${{ env.BINPKG_NAME }}
           author_name: Voiders Community
+          cwd: $GITHUB_WORKSPACE
           message: "[ci] add ${{ env.BINPKG_NAME }}"
           pull: --rebase --autostash
           push: true
