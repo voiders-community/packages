@@ -46,6 +46,9 @@ jobs:
           ln -s / void-packages/masterdir
           ./make bootstrap
           ./make build ${{ inputs.template }}
+          ls -lha
+          pwd
+          echo github_workspace: $GITHUB_WORKSPACE
       - name: publish ${{ env.BINPKG_NAME }}
         uses: EndBug/add-and-commit@v9
         with:
