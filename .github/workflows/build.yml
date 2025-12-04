@@ -43,7 +43,7 @@ jobs:
           echo XBPS_CHROOT_CMD=ethereal >> ./void-packages/etc/conf
           echo XBPS_ALLOW_CHROOT_BREAKOUT=yes >> ./void-packages/etc/conf
           echo XBPS_TARGET_ARCH=${{ inputs.arch }} >> ./void-packages/etc/conf
-          ln -s / void-packages/masterdir
+          sudo ln -s / void-packages/masterdir
           ./make bootstrap
           ./make build ${{ inputs.template }}
       - name: publish ${{ env.BINPKG_NAME }}
