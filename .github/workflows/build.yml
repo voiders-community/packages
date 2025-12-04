@@ -28,7 +28,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      XBPS_TARGET_ARCH: ${{ inputs.arch }}
       BINPKG_NAME: ${{ inputs.template }}-${{ inputs.version }}_${{ inputs.revision }}.${{ inputs.arch }}.xbps
     steps:
       - name: get xbps static
@@ -44,15 +43,12 @@ jobs:
           echo XBPS_CHROOT_CMD=ethereal >> ./void-packages/etc/conf
           echo XBPS_ALLOW_CHROOT_BREAKOUT=yes >> ./void-packages/etc/conf
           ln -s / void-packages/masterdir
-          ./make bootstrap
-          ./make build ${{ inputs.template }}
-          ls -lha
-          pwd
-          echo github_workspace: $GITHUB_WORKSPACE
+          XBPS_TARGET_ARCH=${{ inputs.arch }} ./make bootstrap
+          XBPS_TARGET_ARCH=${{ inputs.arch }} ./make build ${{ inputs.template }}
       - name: publish ${{ env.BINPKG_NAME }}
         uses: EndBug/add-and-commit@v9
         with:
-          add: ./hostdir/binpkgs
+          add: ./hostdir/binpkgs/${{ env.BINPKG_NAME }}
           author_name: Voiders Community
           message: "[ci] add ${{ env.BINPKG_NAME }}"
           pull: --rebase --autostash
