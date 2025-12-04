@@ -29,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BINPKG_NAME: ${{ inputs.template }}-${{ inputs.version }}_${{ inputs.revision }}.${{ inputs.arch }}.xbps
+      XBPS_TARGET_ARCH: ${{ inputs.arch }}
     steps:
       - name: get xbps static
         run: |
