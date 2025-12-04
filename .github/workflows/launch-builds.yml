@@ -1,0 +1,18 @@
+name: Launch build actions
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: [srcpkgs/**]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  launch-builds:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout voiders-community/packages
+        uses: actions/checkout@v6
+      - name: Find missing bin packages
+        run: |
+          sh ./ci/templates-to-build.sh
