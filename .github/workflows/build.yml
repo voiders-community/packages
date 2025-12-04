@@ -42,9 +42,10 @@ jobs:
         run: |
           echo XBPS_CHROOT_CMD=ethereal >> ./void-packages/etc/conf
           echo XBPS_ALLOW_CHROOT_BREAKOUT=yes >> ./void-packages/etc/conf
+          echo XBPS_TARGET_ARCH=${{ inputs.arch }} >> ./void-packages/etc/conf
           ln -s / void-packages/masterdir
-          XBPS_TARGET_ARCH=${{ inputs.arch }} ./make bootstrap
-          XBPS_TARGET_ARCH=${{ inputs.arch }} ./make build ${{ inputs.template }}
+          ./make bootstrap
+          ./make build ${{ inputs.template }}
       - name: publish ${{ env.BINPKG_NAME }}
         uses: EndBug/add-and-commit@v9
         with:
