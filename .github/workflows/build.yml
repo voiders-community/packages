@@ -45,7 +45,7 @@ jobs:
           echo XBPS_ALLOW_CHROOT_BREAKOUT=yes >> ./void-packages/etc/conf
           echo XBPS_TARGET_ARCH=${{ inputs.arch }} >> ./void-packages/etc/conf
           sudo ln -s / void-packages/masterdir
-          ./make bootstrap
+          sudo ./make bootstrap
           ./make build ${{ inputs.template }}
       - name: publish ${{ env.BINPKG_NAME }}
         uses: EndBug/add-and-commit@v9
