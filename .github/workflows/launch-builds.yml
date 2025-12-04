@@ -6,7 +6,7 @@ on:
     paths: [srcpkgs/**]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   launch-builds:
     runs-on: ubuntu-latest
