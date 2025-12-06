@@ -1,5 +1,6 @@
 name: Create and publish builder image
 on:
+  workflow_dispatch:
   push:
     branches: [master]
     paths: [ci/builder.Dockerfile]
