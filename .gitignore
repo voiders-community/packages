@@ -1,2 +1,4 @@
 private.pem
 pass
+hostdir/repocache*
+hostdir/sources
