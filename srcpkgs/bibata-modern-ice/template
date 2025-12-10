@@ -2,7 +2,7 @@
 pkgname=bibata-modern-ice
 version=2.0.7
 revision=4
-short_desc="Open source, compact, and material designed cursor set."
+short_desc="Open source, compact, and material designed cursor set"
 maintainer="Wladimir Bec <wladimirbec@gmail.com>"
 license="GPL-3.0-only"
 homepage="https://github.com/ful1e5/Bibata_Cursor"
