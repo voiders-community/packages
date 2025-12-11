@@ -26,7 +26,7 @@ build() {
     fi
 
     cp -r "./srcpkgs/$1" "./void-packages/srcpkgs/$1"
-    _xbps_src pkg "$1"
+    _xbps_src -r "." pkg "$1"
     rm -rf "./void-packages/srcpkgs/$1"
 }
 
