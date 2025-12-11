@@ -1,0 +1,96 @@
+# Template file for 'limine-entry-tool'
+pkgname=limine-entry-tool
+version=1.26.1
+revision=1
+hostmakedepends="apache-maven openjdk17"
+depends="openjdk17-jre bash coreutils binutils util-linux efibootmgr limine"
+short_desc="Tool to manage Limine boot entries"
+maintainer="Haris <plavpxl@proton.me>"
+license="GPL-3.0-only"
+homepage="https://gitlab.com/Zesko/limine-entry-tool"
+distfiles="https://gitlab.com/Zesko/limine-entry-tool/-/archive/${version}-1/limine-entry-tool-${version}-1.tar.gz"
+checksum=e8913173f3e7c1046fac3a68768680eb302337afe441c7aa1d8a5fc4de4df37e
+
+post_extract() {
+	local _worker="install/arch-linux/limine-dracut-support/usr/share/libalpm/scripts/limine-dracut-install"
+	
+  	# remove non-POSIX 'function' keyword
+  	vsed -i 's/^function //' install/arch-linux/limine-dracut-support/usr/lib/dracut/modules.d/91btrfs-snapshot-overlay/snapshot-overlay.sh
+	
+	# patch for Void module dirs instead of Arch pkgbase files
+	vsed -i 's|/usr/lib/modules/\*/pkgbase|/usr/lib/modules/[0-9]*|' "${_worker}"
+
+	vsed -i 's|\[\[ -f "\${pkgbase_file}" \]\]|[[ -d "${pkgbase_file}" ]]|' "${_worker}"
+
+	# disable pacman ownership check
+	vsed -i '/if ! pacman -Qqo/,/fi/s/^/#/' "${_worker}"
+
+	# patch to Void kernel naming standard
+	vsed -i 's|kName="$(<"\${pkgbase_file}")"|kName="${pkgbase_file##*/}"|' "${_worker}"
+
+	# patch kDir variable
+	vsed -i 's|kDir="\${pkgbase_file%/pkgbase}"|kDir="${pkgbase_file}"|' "${_worker}"
+
+	vsed -i 's|kFilePath="\${kDir}/vmlinuz"|kFilePath="/boot/vmlinuz-${kName}"|' "${_worker}"
+}
+
+do_build() {
+	mvn clean package -DskipTests
+}
+
+do_install() {
+	vmkdir usr/share/java
+	vinstall target/limine-entry-tool.jar 644 usr/share/java/
+
+	local _base_src="install/arch-linux/limine-dracut-support"
+
+	vmkdir usr/lib/limine
+	vinstall "${_base_src}/usr/lib/limine/limine-common-functions" 644 usr/lib/limine/
+	vinstall "${_base_src}/usr/lib/limine/let-check-java" 644 usr/lib/limine/
+
+	for bin in limine-entry-tool limine-install limine-scan limine-enroll-config limine-reset-enroll; do
+		vinstall "${_base_src}/usr/bin/${bin}" 755 usr/bin/
+	done
+
+	vinstall "${_base_src}/etc/limine-entry-tool.conf" 644 etc/default/ limine
+}
+
+limine-dracut-support_package() {
+	short_desc+=" - Dracut integration"
+	depends="${sourcepkg}>=${version}_${revision} dracut"
+	conflicts="limine-mkinitcpio-hook"
+	pkg_install() {
+		local _src="install/arch-linux/limine-dracut-support"
+
+		vsed -i 's|/usr/share/libalpm/scripts/|/usr/lib/limine/|' \
+			"${wrksrc}/${_src}/usr/bin/limine-dracut"
+
+		vinstall "${_src}/usr/bin/limine-dracut" 755 usr/bin/
+		vinstall "${_src}/usr/share/libalpm/scripts/limine-dracut-install" 755 usr/lib/limine/
+		vinstall "${_src}/usr/bin/limine-update" 755 usr/bin/
+
+		if [ -d "${wrksrc}/${_src}/usr/lib/dracut/modules.d" ]; then
+			vmkdir usr/lib/dracut/modules.d
+			vcopy "${_src}/usr/lib/dracut/modules.d/*" usr/lib/dracut/modules.d/
+		fi
+	}
+}
+
+# untested as of rev 1
+limine-mkinitcpio-hook_package() {
+	short_desc+=" - Mkinitcpio integration"
+	depends="${sourcepkg}>=${version}_${revision} mkinitcpio"
+	conflicts="limine-dracut-support"
+	pkg_install() {
+		local _src="install/arch-linux/limine-mkinitcpio-hook"
+
+		if [ -d "${wrksrc}/${_src}/usr/lib/initcpio" ]; then
+			vmkdir usr/lib/initcpio
+			vcopy "${_src}/usr/lib/initcpio/*" usr/lib/initcpio/
+		fi
+
+		if [ -f "${wrksrc}/${_src}/usr/bin/limine-update" ]; then
+			vinstall "${_src}/usr/bin/limine-update" 755 usr/bin/
+		fi
+	}
+}
