@@ -1,0 +1,115 @@
+# Template file for 'svc'
+pkgname=svc
+version=1.0.0
+revision=1
+build_style=gnu-makefile
+make_build_args="CC=clang"
+make_install_args="PREFIX=/usr"
+hostmakedepends="clang"
+short_desc="Small and simple reimplementation of sv for runit"
+maintainer="Haris <plavpxl@proton.me>"
+license="AGPL-3.0-only"
+homepage="https://github.com/WladimirBec/svc"
+distfiles="https://github.com/WladimirBec/svc/archive/refs/tags/${version}.tar.gz"
+checksum=da46f8a65a2c18aa8ca502a0988ac6129ee2e973555c54c9bca37dcd94690701
+
+post_extract() {
+	# remove -march=native so it builds portably
+	vsed -i 's/-march=native//g' Makefile
+
+	# use void CFLAGS
+	# see: https://github.com/void-linux/void-packages/tree/master/common/build-profiles
+	# see: https://github.com/void-linux/void-packages/blob/master/common/environment/configure/hardening.sh
+	vsed -i 's/CFLAGS :=/CFLAGS +=/g' Makefile
+}
+
+post_install() {
+	vlicense LICENSE
+}
+
+do_check() {
+	msg_normal "Running internal test suite...\n"
+
+	local BIN="./bld/svc"
+	export SVDIR="${wrksrc}/tmp/run"
+	export AVDIR="${wrksrc}/tmp/avail"
+
+	# wipe previous test runs
+	rm -rf "${wrksrc}/tmp"
+
+	# fake service directory
+	mkdir -p "$SVDIR/testsvc/supervise"
+	mkdir -p "$AVDIR/linkme"
+
+	# create mock runit control files
+	mkfifo "$SVDIR/testsvc/supervise/control"
+
+	# Initial state: RUNNING
+	echo "run" > "$SVDIR/testsvc/supervise/stat"
+	echo "12345" > "$SVDIR/testsvc/supervise/pid"
+
+	# test 1 view status
+	if ! $BIN view | grep -q "testsvc"; then
+		msg_error "FAIL: 'view' command did not list the running service.\n"
+		return 1
+	fi
+
+	# test 2 symlinking
+	$BIN link linkme
+	if [ ! -L "$SVDIR/linkme" ]; then
+		msg_error "FAIL: 'link' command failed to create symlink.\n"
+		return 1
+	fi
+
+	# test 3 sym un-linking
+	$BIN unlink linkme
+	if [ -e "$SVDIR/linkme" ]; then
+		msg_error "FAIL: 'unlink' command failed to remove symlink.\n"
+		return 1
+	fi
+
+	# test 4 permanent down (and verify permissions)
+	$BIN down testsvc
+	if [ ! -f "$SVDIR/testsvc/down" ]; then
+		msg_error "FAIL: 'down' command failed to create down file.\n"
+		return 1
+	fi
+	# verify permissions are 644 (rw-r--r--)
+	if [ "$(stat -c "%a" "$SVDIR/testsvc/down")" != "644" ]; then
+		msg_error "FAIL: 'down' file has wrong permissions (expected 644).\n"
+		return 1
+	fi
+
+	# test 5 permanent up
+	$BIN up testsvc
+	if [ -f "$SVDIR/testsvc/down" ]; then
+		msg_error "FAIL: 'up' command failed to remove down file.\n"
+		return 1
+	fi
+
+	echo "down" > "$SVDIR/testsvc/supervise/stat"
+
+	# test 6 start service
+	cat "$SVDIR/testsvc/supervise/control" > "${wrksrc}/tmp/pipe_out" &
+	local BG_PID=$!
+	$BIN start testsvc
+	wait $BG_PID
+	if ! grep -q "u" "${wrksrc}/tmp/pipe_out"; then
+		msg_error "FAIL: 'start' command did not send 'u' byte to control pipe.\n"
+		return 1
+	fi
+
+	echo "run" > "$SVDIR/testsvc/supervise/stat"
+
+	# test 7 stop service
+	cat "$SVDIR/testsvc/supervise/control" > "${wrksrc}/tmp/pipe_out" &
+	local BG_PID=$!
+	$BIN stop testsvc
+	wait $BG_PID
+	if ! grep -q "d" "${wrksrc}/tmp/pipe_out"; then
+		msg_error "FAIL: 'stop' command did not send 'd' byte to control pipe.\n"
+		return 1
+	fi
+
+	msg_normal "All tests passed successfully.\n"
+}
