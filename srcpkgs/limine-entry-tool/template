@@ -14,8 +14,8 @@ checksum=e8913173f3e7c1046fac3a68768680eb302337afe441c7aa1d8a5fc4de4df37e
 post_extract() {
 	local _worker="install/arch-linux/limine-dracut-support/usr/share/libalpm/scripts/limine-dracut-install"
 	
-  # remove non-POSIX 'function' keyword
-  vsed -i 's/^function //' install/arch-linux/limine-dracut-support/usr/lib/dracut/modules.d/91btrfs-snapshot-overlay/snapshot-overlay.sh
+  	# remove non-POSIX 'function' keyword
+  	vsed -i 's/^function //' install/arch-linux/limine-dracut-support/usr/lib/dracut/modules.d/91btrfs-snapshot-overlay/snapshot-overlay.sh
 	
 	# patch for Void module dirs instead of Arch pkgbase files
 	vsed -i 's|/usr/lib/modules/\*/pkgbase|/usr/lib/modules/[0-9]*|' "${_worker}"
