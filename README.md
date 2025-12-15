@@ -7,7 +7,7 @@ You can use this repo in two ways, either localy or remotely.
 ### Clone the repository anywhere
 
 ```sh
-git clone https://github.com/voiders-community/packages ~/ports --shallow-submodules --recursive --depth=1
+git clone https://github.com/voiders-community/packages ~/ports --recurse-submodules
 ```
 
 ### Add the repository
