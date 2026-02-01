@@ -52,6 +52,13 @@ xbps-query -Rs --repository=https://voiders-community.github.io/packages "*"
 
 We welcome and encourage contributions. Please follow the standard `xbps-src` packaging guidelines where possible. All packages must be tested before they are considered to be added.
 
+### Backend
+
+The `build.sh` script is a wrapper for `xbps-src` to work with custom repos. To avoid dependency issues, it copies all `srcpkgs` into the submodule dir `void-packages/srcpkgs` before attempting builds. Reviews and improvements are very welccome!
+
+The workflow file `.github/workflows/build.yml` uses a Docker image [`void-glibc-full`](https://github.com/void-linux/void-containers/pkgs/container/void-glibc-full) from [void-containers](https://github.com/void-linux/void-containers) for a full build and development environment.
+
+### Packages
 
 To keep this repo more open, we allow opening Pull Requests (PRs) if you don't have a built template, or even know how to create one. When opening a PR for this, use the tag `template request` and briefly discuss:
 
@@ -67,7 +74,7 @@ For any Electron-based apps, use the tag `electron`.
 
 For any custom Linux kernels, use the tag `kernel`. Note that custom kernels must work on all hardware (that is, not compiled with `-march=native` or similar).
 
-A submodule of the official `void-packages` is used. This will be updated from upstream before any commits to `master`, please do not include it in PRs.
+A submodule of the official `void-packages` is used. This will be updated from upstream automatically, please do not include it in PRs.
 
 ### Build Locally
 To build a package from this repository locally:

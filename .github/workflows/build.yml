@@ -2,7 +2,7 @@ name: Build packages
 on:
   workflow_dispatch:
   push:
-    branches: [master, main, builder]
+    branches: [master]
     paths: [srcpkgs/**]
 
 permissions:
