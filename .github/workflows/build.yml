@@ -105,7 +105,7 @@ jobs:
           cd ..
 
           git add packages/
-          git pull --rebase origin main
           git commit -m "[ci] Update ${{ matrix.arch }} packages in /packages: ${{ steps.changes.outputs.templates }}"
+          git pull --rebase origin main
           git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/voiders-community/voiders-community.github.io.git
           git push origin main
