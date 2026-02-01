@@ -2,67 +2,102 @@ name: Build packages
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [master, main]
     paths: [srcpkgs/**]
+
 permissions:
   contents: write
   packages: read
+
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/voiders-community/builder:master
+      image: ghcr.io/void-linux/void-glibc-full:latest
       options: --privileged
       env:
-        XBPS_TARGET_ARCH: ${{ matrix.arch }}
+        XBPS_ARCH: x86_64
     strategy:
       max-parallel: 1
       fail-fast: false
       matrix:
-        arch: [ x86_64, x86_64-musl ]
+        # Build for both architectures
+        arch: [x86_64, x86_64-musl]
     steps:
-      - name: clone ${{ github.repository }}
+      - name: Prepare Builder
         run: |
-          # depth=100 because each build is run one by one, and each successful build will push a new commits
-          git clone https://github.com/${{ github.repository }}.git --shallow-submodules --recursive --depth=100
-      - name: bootstraping xbps-src
-        run: |
-          cd packages
-          ./make bootstrap
-      - name: build changed templates
-        run: |
-          cd packages
-          for file in $(git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep "srcpkgs/"); do
-            ./make build "$(echo "$file" | cut -d "/" -f2)"
-          done
-      - name: signing packages
-        run: |
-          cd packages
-          gpg --quiet --batch --yes --decrypt --passphrase="${{ secrets.PRIVATE_PEM_GPG_PASS }}" --output ./private.pem ./private.pem.gpg
-          xbps-rindex --privkey private.pem --sign-pkg --signedby "Voiders community" ./hostdir/binpkgs/*.xbps
-      - name: adding packages
-        run: |
-          cd packages
-          xbps-rindex -a ./hostdir/binpkgs/*.xbps
-      - name: signing repo
-        run: |
-          cd packages
-          xbps-rindex --privkey private.pem --sign --signedby "Voiders community" hostdir/binpkgs
-      - name: pushing packages
-        run: |
-          cd packages
-          git config user.email "community@voiders.fake.url"
-          git config user.name "Voiders Community"
-          git pull --autostash --rebase
-          git add ./hostdir/binpkgs || :
+          xbps-install -Syu xbps
+          xbps-install -y sudo git bash gnupg tar curl
 
-          # if there's something cached
-          if ! git diff --cached --quiet; then
-            git commit -m "[ci] add newly built packages ${{ matrix.arch }}"
-            git remote remove origin
-            git remote add origin https://builder:${{ secrets.PAT }}@github.com/${{ github.repository }}
-            git push --set-upstream origin master
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/void-packages"
+
+      - name: Clone Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Bootstrap xbps-src
+        run: ./build.sh bootstrap
+
+      - name: Identify changed templates
+        id: changes
+        run: |
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || [ -z "${{ github.event.before }}" ]; then
+            CHANGED=$(git diff --name-only HEAD~1..HEAD | grep "^srcpkgs/" | cut -d/ -f2 | sort -u | xargs)
+          else
+            CHANGED=$(git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep "^srcpkgs/" | cut -d/ -f2 | sort -u | xargs)
           fi
+
+          if [ -z "$CHANGED" ]; then
+            echo "templates=" >> $GITHUB_OUTPUT
+          else
+            echo "templates=$CHANGED" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Packages
+        if: steps.changes.outputs.templates != ''
+        env:
+          XBPS_TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          for pkg in ${{ steps.changes.outputs.templates }}; do
+            echo "Building $pkg for ${{ matrix.arch }}..."
+            ./build.sh build "$pkg"
+          done
+
+      - name: Sign Packages
+        if: steps.changes.outputs.templates != ''
+        env:
+          GPG_PASS: ${{ secrets.PRIVATE_PEM_GPG_PASS }}
+        run: |
+          gpg --quiet --batch --yes --pinentry-mode loopback --decrypt --passphrase="$GPG_PASS" --output private.pem private.pem.gpg
+          xbps-rindex --privkey private.pem --sign-pkg --signedby "Haris <plavpxl@proton.me>" hostdir/binpkgs/*.xbps
+
+      - name: Deploy to Website
+        if: steps.changes.outputs.templates != ''
+        run: |
+          git config --global user.name "Voiders Builder Bot"
+          git config --global user.email "bot@voiders.community"
+
+          git clone https://github.com/voiders-community/voiders-community.github.io.git website
+          mkdir -p website/repo
+
+          cp -f hostdir/binpkgs/*.xbps website/repo/
+          cp -f hostdir/binpkgs/*.sig* website/repo/ 2>/dev/null || true
+
+          cd website/repo
+          cp ../../private.pem .
+
+          xbps-rindex --privkey private.pem --sign --signedby "Haris <plavpxl@proton.me>" --force -a *.xbps
+
+          rm private.pem
+          cd ..
+          git add repo/
+          git commit -m "[ci] Update ${{ matrix.arch }} packages: ${{ steps.changes.outputs.templates }}"
+          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/voiders-community/voiders-community.github.io.git
+          git push origin main
