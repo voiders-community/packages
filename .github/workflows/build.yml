@@ -2,7 +2,7 @@ name: Build packages
 on:
   workflow_dispatch:
   push:
-    branches: [master, main]
+    branches: [master, main, builder]
     paths: [srcpkgs/**]
 
 permissions:
@@ -25,7 +25,6 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        # Build for both architectures
         arch: [x86_64, x86_64-musl]
     steps:
       - name: Prepare Builder
@@ -33,32 +32,47 @@ jobs:
           xbps-install -Syu xbps
           xbps-install -y sudo git bash gnupg tar curl
 
+          if ! id -u builder >/dev/null 2>&1; then
+            groupadd -f xbuilder
+            useradd -m -g xbuilder -G xbuilder builder
+          fi
+
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+          chown -R builder:xbuilder "$GITHUB_WORKSPACE"
+
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/void-packages"
 
       - name: Clone Repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
           fetch-depth: 0
 
-      - name: Bootstrap xbps-src
-        run: ./build.sh bootstrap
+      - name: Shallow Clone Void-Packages
+        run: |
+          sudo -H -E -u builder git submodule update --init --recursive --depth 1
 
       - name: Identify changed templates
         id: changes
         run: |
           if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || [ -z "${{ github.event.before }}" ]; then
-            CHANGED=$(git diff --name-only HEAD~1..HEAD | grep "^srcpkgs/" | cut -d/ -f2 | sort -u | xargs)
+             CHANGED=$(git diff --name-only HEAD~1..HEAD | grep "^srcpkgs/" | cut -d/ -f2 | sort -u | xargs)
           else
-            CHANGED=$(git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep "^srcpkgs/" | cut -d/ -f2 | sort -u | xargs)
+             CHANGED=$(git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep "^srcpkgs/" | cut -d/ -f2 | sort -u | xargs)
           fi
 
           if [ -z "$CHANGED" ]; then
+            echo "No changes detected."
             echo "templates=" >> $GITHUB_OUTPUT
           else
+            echo "Detected changes in: $CHANGED"
             echo "templates=$CHANGED" >> $GITHUB_OUTPUT
           fi
+
+      - name: Bootstrap xbps-src
+        run: sudo -H -E -u builder ./build.sh bootstrap
 
       - name: Build Packages
         if: steps.changes.outputs.templates != ''
@@ -67,7 +81,7 @@ jobs:
         run: |
           for pkg in ${{ steps.changes.outputs.templates }}; do
             echo "Building $pkg for ${{ matrix.arch }}..."
-            ./build.sh build "$pkg"
+            sudo -H -E -u builder ./build.sh build "$pkg"
           done
 
       - name: Sign Packages
@@ -76,6 +90,7 @@ jobs:
           GPG_PASS: ${{ secrets.PRIVATE_PEM_GPG_PASS }}
         run: |
           gpg --quiet --batch --yes --pinentry-mode loopback --decrypt --passphrase="$GPG_PASS" --output private.pem private.pem.gpg
+
           xbps-rindex --privkey private.pem --sign-pkg --signedby "Haris <plavpxl@proton.me>" hostdir/binpkgs/*.xbps
 
       - name: Deploy to Website
@@ -85,7 +100,6 @@ jobs:
           git config --global user.email "bot@voiders.community"
 
           git clone https://github.com/voiders-community/voiders-community.github.io.git website
-
           mkdir -p website/packages
 
           cp -f hostdir/binpkgs/*.xbps website/packages/
