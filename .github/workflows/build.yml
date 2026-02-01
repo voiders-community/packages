@@ -99,7 +99,8 @@ jobs:
 
           cd website/packages
 
-          xbps-rindex --privkey ../../private.pem --sign --signedby "Haris <plavpxl@proton.me>" --force -a *.xbps
+          xbps-rindex --force -a *.xbps
+          xbps-rindex --privkey ../../private.pem --sign --signedby "Haris <plavpxl@proton.me>" .
 
           cd ..
 
