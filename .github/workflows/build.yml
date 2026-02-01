@@ -85,19 +85,22 @@ jobs:
           git config --global user.email "bot@voiders.community"
 
           git clone https://github.com/voiders-community/voiders-community.github.io.git website
-          mkdir -p website/repo
 
-          cp -f hostdir/binpkgs/*.xbps website/repo/
-          cp -f hostdir/binpkgs/*.sig* website/repo/ 2>/dev/null || true
+          mkdir -p website/packages
 
-          cd website/repo
+          cp -f hostdir/binpkgs/*.xbps website/packages/
+          cp -f hostdir/binpkgs/*.sig* website/packages/ 2>/dev/null || true
+
+          cd website/packages
           cp ../../private.pem .
 
           xbps-rindex --privkey private.pem --sign --signedby "Haris <plavpxl@proton.me>" --force -a *.xbps
 
           rm private.pem
           cd ..
-          git add repo/
-          git commit -m "[ci] Update ${{ matrix.arch }} packages: ${{ steps.changes.outputs.templates }}"
+
+          git add packages/
+          git pull --rebase origin main
+          git commit -m "[ci] Update ${{ matrix.arch }} packages in /packages: ${{ steps.changes.outputs.templates }}"
           git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/voiders-community/voiders-community.github.io.git
           git push origin main
