@@ -1,10 +1,10 @@
 # Template file for 'electron39'
 pkgname=electron39
 version=39.2.3
-revision=1
+revision=2
 _nodever=22.21.1
 _chromiumver=142.0.7444.175
-archs="x86_64* aarch64*"
+archs="x86_64*"
 create_wrksrc=yes
 build_wrksrc="src"
 _llvmver=21
@@ -25,7 +25,7 @@ makedepends="libpng-devel gtk+3-devel nss-devel pciutils-devel
  $(vopt_if pipewire pipewire-devel) wayland-devel libcurl-devel libxshmfence-devel
  compiler-rt${_llvmver} rust-std"
 short_desc="Cross platform application framework based on web technologies"
-maintainer="Duncaen <duncaen@voidlinux.org>"
+maintainer="Haris <plavpxl@proton.me>"
 license="BSD-3-Clause"
 homepage="https://electronjs.org"
 distfiles=" https://ayakael.net/api/packages/mirrors/generic/electron/v${version}/electron-v${version}-${_chromiumver}.tar.zst
