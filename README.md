@@ -1,46 +1,92 @@
-Void packages repo maintained by the unofficial void linux community.
+# Void Community Repository
 
-You can use this repo in two ways, either localy or remotely.
+[![Build Status](https://img.shields.io/github/actions/workflow/status/voiders-community/void-packages/build.yml?style=flat-square&label=Build)](https://github.com/voiders-community/packages/actions)
+[![Packages](https://img.shields.io/github/directory-file-count/voiders-community/void-packages/srcpkgs?style=flat-square&label=Packages&type=dir)](https://github.com/voiders-community/packages/tree/master/srcpkgs)
+[![Open Issues](https://img.shields.io/github/issues/voiders-community/void-packages?style=flat-square&color=orange)](https://github.com/voiders-community/packages/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/voiders-community/void-packages?style=flat-square&color=blue)](https://github.com/voiders-community/packages/pulls)
+[![License](https://img.shields.io/github/license/voiders-community/void-packages?style=flat-square)](LICENSE.md)
 
-## Local install
+An unofficial, community-driven package repository for [Void Linux](https://voidlinux.org).
 
-### Clone the repository anywhere
+This repository hosts software that may diverge from the strict guidelines of the official Void repositories, including patched versions, experimental software, and customized configurations.
 
-```sh
-git clone https://github.com/voiders-community/packages ~/ports --recurse-submodules
-```
+Currently supported architectures include `x86_64` and `x86_64-musl`.
 
-### Add the repository
+## Installation
 
-```sh
-echo "repository=$HOME/ports/hostdir/binpkgs" | sudo tee /etc/xbps.d/10-voiders-community-local-repo.conf
-```
-
-### Sync the repos
-
-```sh
-sudo xbps-install -S
-```
-
-## Remote install
-
-### Add the repository
+### 1. Register the Repository
+Create a repo config file for XBPS.
 
 ```sh
-echo "repository=https://github.com/voiders-community/packages/raw/refs/heads/master/hostdir/binpkgs/" | sudo tee /etc/xbps.d/10-voiders-community-local-repo.conf
+echo "repository=https://voiders-community.github.io/packages" | sudo tee /etc/xbps.d/20-voiders.conf
 ```
 
-### Sync the repos
+### 2. Sync & Import Keys
+Update your local index. XBPS will prompt you to import the repo's RSA key upon the first sync.
 
 ```sh
 sudo xbps-install -S
 ```
 
+### 3. Verification (Optional but Recommended)
+Verify that the imported key matches our official fingerprint:
 
-## How to add a new package
+> `Signed by Haris <plavpxl@proton.me>`
+> `f4:d9:eb:bf:3c:9a:04:ae:e9:98:ac:12:7a:88:6b:06`
 
-Write your template in ./srcpkgs/YOUR_PACKAGE/template like you'd do with the official repo, then run `./make build YOUR_PACKAGE`, if you've installed the repo using the local install you can now do `xbps-install -S YOUR_PACKAGE`.
+## Usage
 
-## How to push my new package
+Once registered, you can install packages as normal:
 
-To add a new package you just need to open a PR with your srcpkgs (DO NOT push any .xbps files)
+```sh
+sudo xbps-install <package_name>
+```
+
+To list all packages available in this repository:
+
+```sh
+xbps-query -Rs --repository=https://voiders-community.github.io/packages "*"
+```
+
+## Contributing
+
+We welcome and encourage contributions. Please follow the standard `xbps-src` packaging guidelines where possible. All packages must be tested before they are considered to be added.
+
+
+To keep this repo more open, we allow opening Pull Requests (PRs) if you don't have a built template, or even know how to create one. When opening a PR for this, use the tag `template request` and briefly discuss:
+
+- Why should we add and maintain this package?
+- Should it be compiled from source or download a binary pkg?
+- Does it appear to be safe? (i.e., no known malicious source code or blobs)
+
+Often times, users will create working templates and make them available on the Internet, but outdated/orphaned. These are also welcomed. In addition to the above tag, use the `orphaned` tag. 
+
+For other packages intended to be actively maintained, with a template made, use the tag `package request`.
+
+For any Electron-based apps, use the tag `electron`.
+
+For any custom Linux kernels, use the tag `kernel`. Note that custom kernels must work on all hardware (that is, not compiled with `-march=native` or similar).
+
+A submodule of the official `void-packages` is used. This will be updated from upstream before any commits to `master`, please do not include it in PRs.
+
+### Build Locally
+To build a package from this repository locally:
+
+1. Clone the repo:
+   ```sh
+   git clone https://github.com/voiders-community/packages.git --recurse-submodules
+   cd void-packages
+   ```
+
+2. Build using the provided helper script:
+   ```sh
+   ./build.sh build <pkgname>
+   ```
+
+### CI/CD Pipeline
+All packages are automatically built and signed via GitHub Actions.
+- **Push:** Commits to `master` trigger a rebuild of changed templates.
+- **Publish:** Successful builds are automatically deployed to the repository site.
+
+---
+*This project is not officially affiliated with the Void Linux contributors, maintainers, or developers.*
