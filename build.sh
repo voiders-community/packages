@@ -21,9 +21,8 @@ build() {
         exit 1
     fi
 
-    rm -rf "./void-packages/srcpkgs/$TEMPLATE"
-
-    cp -r "./srcpkgs/$TEMPLATE" "./void-packages/srcpkgs/$TEMPLATE"
+    echo "syncing all local packages to void-packages/srcpkgs..."
+    cp -a ./srcpkgs/* ./void-packages/srcpkgs/
 
     _xbps_src -r "." pkg "$TEMPLATE"
 }
