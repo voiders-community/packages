@@ -21,33 +21,20 @@ jobs:
       options: --privileged
       env:
         XBPS_ARCH: x86_64
+        XBPS_ALLOW_CHROOT_BREAKOUT: yes
     strategy:
       max-parallel: 1
       fail-fast: false
       matrix:
         arch: [x86_64, x86_64-musl]
     steps:
-      - name: Prepare Builder
+      - name: Prepare Container
         run: |
           xbps-install -Syu xbps
-          xbps-install -y sudo git bash gnupg tar curl
-
-          if ! id -u builder >/dev/null 2>&1; then
-            groupadd -f xbuilder
-            useradd -m -g xbuilder -G xbuilder builder
-          fi
-
-          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-
-          touch /etc/subuid /etc/subgid
-          echo "builder:100000:65536" >> /etc/subuid
-          echo "builder:100000:65536" >> /etc/subgid
-
-          chown -R builder:xbuilder "$GITHUB_WORKSPACE"
-          chmod -R g+w "$GITHUB_WORKSPACE"
+          xbps-install -y git bash gnupg tar curl
 
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          sudo -u builder git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/void-packages"
 
       - name: Clone Repository
         uses: actions/checkout@v4
@@ -55,12 +42,9 @@ jobs:
           submodules: false
           fetch-depth: 0
 
-      - name: Fix Ownership After Checkout
-        run: chown -R builder:xbuilder .
-
       - name: Shallow Clone Void-Packages
         run: |
-          sudo -H -E -u builder git submodule update --init --recursive --depth 1
+          git submodule update --init --recursive --depth 1
 
       - name: Identify changed templates
         id: changes
@@ -80,7 +64,7 @@ jobs:
           fi
 
       - name: Bootstrap xbps-src
-        run: sudo -H -E -u builder ./build.sh bootstrap
+        run: ./build.sh bootstrap
 
       - name: Build Packages
         if: steps.changes.outputs.templates != ''
@@ -89,7 +73,7 @@ jobs:
         run: |
           for pkg in ${{ steps.changes.outputs.templates }}; do
             echo "Building $pkg for ${{ matrix.arch }}..."
-            sudo -H -E -u builder ./build.sh build "$pkg"
+            ./build.sh build "$pkg"
           done
 
       - name: Sign Packages
@@ -113,7 +97,6 @@ jobs:
           cp -f hostdir/binpkgs/*.xbps website/packages/
           cp -f hostdir/binpkgs/*.sig* website/packages/ 2>/dev/null || true
 
-          # Go into the website directory
           cd website/packages
 
           xbps-rindex --privkey ../../private.pem --sign --signedby "Haris <plavpxl@proton.me>" --force -a *.xbps
