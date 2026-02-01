@@ -39,6 +39,10 @@ jobs:
 
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
+          touch /etc/subuid /etc/subgid
+          echo "builder:100000:65536" >> /etc/subuid
+          echo "builder:100000:65536" >> /etc/subgid
+
           chown -R builder:xbuilder "$GITHUB_WORKSPACE"
           chmod -R g+w "$GITHUB_WORKSPACE"
 
