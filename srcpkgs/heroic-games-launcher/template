@@ -1,0 +1,56 @@
+# Template file for 'heroic-games-launcher'
+pkgname=heroic-games-launcher
+version=2.19.1
+revision=1
+archs="x86_64"
+hostmakedepends="nodejs pnpm python3 git tar pkg-config desktop-file-utils"
+makedepends="libsecret-devel"
+depends="bash wine winetricks libnotify"
+short_desc="Open source Launcher for Epic, Amazon and GOG Games"
+maintainer="Haris <plavpxl@proton.me>"
+license="GPL-3.0-or-later"
+homepage="https://heroicgameslauncher.com/"
+distfiles="https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/archive/refs/tags/v${version}.tar.gz"
+checksum=78cc8d554fe5bd5e23896e4ff3c698197076bd318e0e0f222de67304d9bde22d
+nostrip=yes
+noshlibprovides="libvulkan.so.1"
+
+post_patch() {
+	vsed -i 's|app.getPath(.exe.)|"/usr/bin/heroic"|g' \
+		src/backend/shortcuts/nonesteamgame/nonesteamgame.ts
+}
+
+do_build() {
+	pnpm install --frozen-lockfile --offline=false
+	pnpm electron-vite build
+	pnpm electron-builder --linux --dir -c.asarUnpack="**/*.node"
+}
+
+do_install() {
+	vmkdir usr/lib/heroic
+	cp -r dist/linux-unpacked/* ${DESTDIR}/usr/lib/heroic/
+
+	vmkdir usr/bin
+	ln -sf /usr/lib/heroic/heroic ${DESTDIR}/usr/bin/heroic
+
+	local _build_dir="${DESTDIR}/usr/lib/heroic/resources/app.asar.unpacked/build"
+	mkdir -p "${_build_dir}"
+	cp -r public/* "${_build_dir}"
+
+	install -D flatpak/com.heroicgameslauncher.hgl.desktop \
+		${DESTDIR}/usr/share/applications/heroic-games-launcher.desktop
+
+	install -D src/frontend/assets/heroic-icon.svg \
+		${DESTDIR}/usr/share/icons/hicolor/scalable/apps/com.heroicgameslauncher.hgl.svg
+
+	vsed -i 's|Exec=heroic-run --ozone-platform-hint=auto|Exec=heroic|' \
+		${DESTDIR}/usr/share/applications/heroic-games-launcher.desktop
+
+	if [ -f flatpak/com.heroicgameslauncher.hgl.metainfo.xml ]; then
+		install -D flatpak/com.heroicgameslauncher.hgl.metainfo.xml \
+			${DESTDIR}/usr/share/metainfo/com.heroicgameslauncher.hgl.metainfo.xml
+	elif [ -f flatpak/templates/com.heroicgameslauncher.hgl.metainfo.xml.template ]; then
+		install -D flatpak/templates/com.heroicgameslauncher.hgl.metainfo.xml.template \
+			${DESTDIR}/usr/share/metainfo/com.heroicgameslauncher.hgl.metainfo.xml
+	fi
+}
