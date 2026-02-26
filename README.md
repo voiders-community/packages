@@ -1,3 +1,5 @@
+# ARCHIVED, MOVED TO CODEBERG: https://codeberg.org/voiders-community
+
 # Void Community Repository
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/voiders-community/packages/build.yml?style=flat-square&label=Build)](https://github.com/voiders-community/packages/actions)
